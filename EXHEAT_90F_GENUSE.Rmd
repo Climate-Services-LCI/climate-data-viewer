@@ -1,0 +1,778 @@
+---
+title: "VCP_ExHeat_90F"
+output: html_document
+date: "2025-12-23"
+author: "Climate Services, CA Governor's Office of Land Use and Climate Innovation
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Extreme Heat Analysis for Vulnerable Communities Platform
+
+## Data Description
+
+This code utilizes downscaled climate data available from the Cal-Adapt Analytics Engine to generate an indicator of extreme heat for the Vulnerable Communities Platform (CA Governor's Office of Land Use and Climate Innovation). Specifically, we use downscaled tmaxdata from the five general use projections under SSP370 for two different time scales (2015-2044 and 2045-2074).
+
+The data are available from the following links:
+
+https://cadcat.s3.amazonaws.com/index.html#loca2/aaa-ca-hybrid/
+
+## Frequency of days over 90 degrees F for 2045-2074 (VCP 2050 timescale) ACCESS-CM2
+
+Counts the number of days over June, July, and August of 2045-2074 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "ACCESS-CM2/tasmax.ACCESS-CM2.ssp370.r1i1p1f1.2045-2074.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2045-2074_ACCESS.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2015-2044 (VCP current timescale) ACCESS-CM2
+
+Counts the number of days over June, July, and August of 2015-2044 where daily temperatures exceed 90 degrees Fahrenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "ACCESS-CM2/tasmax.ACCESS-CM2.ssp370.r1i1p1f1.2015-2044.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2015-2044_ACCESS.NC"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+
+## Frequency of days over 90 degrees F for 2045-2074 (VCP 2050 timescale) EC-EARTH
+
+Counts the number of days over June, July, and August of 2045-2074 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "EC-Earth3/tasmax.EC-Earth3.ssp370.r1i1p1f1.2045-2074.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2045-2074_ECEARTH.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2015-2044 (VCP current timescale) EC-EARTH
+
+Counts the number of days over June, July, and August of 2015-2044 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "EC-Earth3/tasmax.EC-Earth3.ssp370.r1i1p1f1.2015-2044.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2015-2044_ECEARTH.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2045-2074 (VCP 2050 timescale) FGOALS
+
+Counts the number of days over June, July, and August of 2045-2074 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "FGOALS-g3/tasmax.FGOALS-g3.ssp370.r1i1p1f1.2045-2074.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2045-2074_FGOALS.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2015-2044 (VCP current timescale) FGOALS
+
+Counts the number of days over June, July, and August of 2015-2044 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "FGOALS-g3/tasmax.FGOALS-g3.ssp370.r1i1p1f1.2015-2044.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2015-2044_FGOALS.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+```
+
+## Frequency of days over 90 degrees F for 2045-2074 (VCP 2050 timescale) MIROC6
+
+Counts the number of days over June, July, and August of 2045-2074 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "MIROC6/tasmax.MIROC6.ssp370.r1i1p1f1.2045-2074.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2045-2074_MIROC6.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2015-2044 (VCP current timescale) MIROC6
+
+Counts the number of days over June, July, and August of 2015-2044 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "MIROC6/tasmax.MIROC6.ssp370.r1i1p1f1.2015-2044.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2015-2044_MIROC6.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+```
+
+## Frequency of days over 90 degrees F for 2045-2074 (VCP 2050 timescale) MPI-ESM1-2-HR
+
+Counts the number of days over June, July, and August of 2045-2074 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "MPI-ESM1-2-HR/tasmax.MPI-ESM1-2-HR.ssp370.r3i1p1f1.2045-2074.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2045-2074_MPI-ESM1-2-HR.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Frequency of days over 90 degrees F for 2015-2044 (VCP current timescale) MPI-ESM1-2-HR
+
+Counts the number of days over June, July, and August of 2015-2044 where daily temperatures exceed 90 degrees Farenheit at each location in the grid.
+
+```{r}
+library(ncdf4)
+
+# Path to NetCDF file
+ncfile <- "MPI-ESM1-2-HR/tasmax.MPI-ESM1-2-HR.ssp370.r3i1p1f1.2015-2044.LOCA2_CA_hybrid_v20230115.nc"
+
+# Open the NetCDF file
+nc <- nc_open(ncfile)
+
+# Extract temperature data and coordinates
+lon <- ncvar_get(nc, "lon")
+lat <- ncvar_get(nc, "lat")
+time <- ncvar_get(nc, "time")
+
+# Set up the time period for June, July, and August
+time_origin <- as.Date("1900-01-01")
+dates <- time_origin + time
+subset_indices <- which(format(dates, "%m") %in% c("06", "07", "08"))
+
+# Create an empty array to store the exceedance count
+exceedance_count <- array(0, dim = c(length(lon), length(lat)))
+
+# Loop through the subset of time indices (JJA)
+for (i in subset_indices) {
+  # Read the temperature data for the current time index
+  temperature_chunk <- ncvar_get(nc, "tasmax", start = c(1, 1, i), count = c(length(lon), length(lat), 1))
+  
+  # Threshold for 90°F in Kelvin
+  threshold_fahrenheit_kelvin <- 305.372
+  
+  # Calculate the exceedances for the current chunk
+  exceedance_chunk <- temperature_chunk > threshold_fahrenheit_kelvin
+  
+  # Add the exceedance counts to the total count
+  exceedance_count <- exceedance_count + exceedance_chunk
+}
+
+# Define the dimensions for the new NetCDF file
+lon_dim <- ncdim_def("lon", "degrees_east", lon)
+lat_dim <- ncdim_def("lat", "degrees_north", lat)
+time_dim <- ncdim_def("time", "days", 1)
+
+# Define the exceedance_count variable
+exceedance_var <- ncvar_def("exceedance_count", "count", list(lon_dim, lat_dim, time_dim), 
+                            missval = NA, prec = "double")
+
+# Create a new NetCDF file to save the exceedance count
+new_ncfile <- "VCP_EXHEAT_90F_2015-2044_MPI-ESM1-2-HR.nc"
+nc_new <- nc_create(new_ncfile, list(exceedance_var))
+
+# Write the exceedance count data into the new NetCDF file
+ncvar_put(nc_new, "exceedance_count", exceedance_count)
+
+# Add coordinate variables (latitude, longitude) and time to the new NetCDF file
+ncvar_put(nc_new, "lon", lon)
+ncvar_put(nc_new, "lat", lat)
+ncvar_put(nc_new, "time", 1)  # Assuming single time dimension (for JJA)
+
+# Close the new NetCDF file
+nc_close(nc_new)
+
+# Close the original NetCDF file
+nc_close(nc)
+```
+
+## Calculating average of the 5 general use projections 2045-2074
+
+```{r}
+library(stars)
+
+# Define the NetCDF file paths
+nc_files <- c(
+  "VCP_EXHEAT_90F_2045-2074_ACCESS.nc", 
+  "VCP_EXHEAT_90F_2045-2074_ECEARTH.nc", 
+  "VCP_EXHEAT_90F_2045-2074_FGOALS.nc",
+  "VCP_EXHEAT_90F_2045-2074_MIROC6.nc",
+  "VCP_EXHEAT_90F_2045-2074_MPI-ESM1-2-HR.nc"
+)
+
+# Load all files as stars objects
+stars_list <- lapply(nc_files, read_stars)
+
+# Optional: check variable names
+# print(names(stars_list[[1]]))  # should show something like "exceedance_count"
+
+# Optional: ensure all grids match
+stopifnot(all(sapply(stars_list, function(x) all.equal(st_dimensions(x), st_dimensions(stars_list[[1]])))))
+
+# Combine along a new "model" dimension
+combined <- do.call(c, c(stars_list, along = "model"))
+
+# Average across "model" (i.e., average exceedance at each grid cell)
+averaged_data <- st_apply(combined, MARGIN = setdiff(names(st_dimensions(combined)), "model"), FUN = mean, na.rm = TRUE)
+
+# Save the averaged result as a new NetCDF file
+write_stars(averaged_data, "VCP_EXHEAT_90F_2045-2074_GENUSE.nc")
+```
+
+
+## Calculating average of the 5 general use projections 2015-2044
+
+```{r}
+library(stars)
+
+# Define the NetCDF file paths
+nc_files <- c(
+  "VCP_EXHEAT_90F_2015-2044_ACCESS.NC", 
+  "VCP_EXHEAT_90F_2015-2044_ECEARTH.nc", 
+  "VCP_EXHEAT_90F_2015-2044_FGOALS.nc",
+  "VCP_EXHEAT_90F_2015-2044_MIROC6.nc",
+  "VCP_EXHEAT_90F_2015-2044_MPI-ESM1-2-HR.nc"
+)
+
+# Load all files as stars objects
+stars_list <- lapply(nc_files, read_stars)
+
+# Optional: check variable names
+# print(names(stars_list[[1]]))  # should show something like "exceedance_count"
+
+# Optional: ensure all grids match
+stopifnot(all(sapply(stars_list, function(x) all.equal(st_dimensions(x), st_dimensions(stars_list[[1]])))))
+
+# Combine along a new "model" dimension
+combined <- do.call(c, c(stars_list, along = "model"))
+
+# Average across "model" (i.e., average exceedance at each grid cell)
+averaged_data <- st_apply(combined, MARGIN = setdiff(names(st_dimensions(combined)), "model"), FUN = mean, na.rm = TRUE)
+
+# Save the averaged result as a new NetCDF file
+write_stars(averaged_data, "VCP_EXHEAT_90F_2015-2044_GENUSE.nc")
+```{r}
