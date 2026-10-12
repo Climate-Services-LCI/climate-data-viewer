@@ -1,5 +1,5 @@
 ---
-title: "Extreme Heat Indicators"
+title: "Extreme Heat Indicators - Days Over 100F"
 output: html_document
 date: "2024-12-23"
 author: "Climate Services, CA Governor's Office of Land Use and Climate Innovation
